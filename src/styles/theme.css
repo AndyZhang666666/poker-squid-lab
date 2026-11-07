@@ -1,11 +1,6 @@
-/* ========================================
-   张千羽 Andy Zhang — Personal Site
-   Themes: copper / indigo (dark) · frost / mist (light) — 切换见 [data-palette]
-   ======================================== */
-
-/* =====================================================
-   THEME TOKENS —— 语义变量。四套配色只改这些，其余样式全部引用别名
-   ===================================================== */
+/* Portfolio typography, semantic aliases and current palette tokens.
+   Source: portfolio-site/style.css + assets/personal-art-direction.css (2026-11-03).
+   Palette IDs remain stable for existing saved preferences. */
 :root {
   /* 深色底 · 回退用。站点默认主题是 [data-palette="frost"]（霜 · 象牙纸），
      写在 <html> 标签上；此处的 :root 值仅在属性缺失时兜底。 */
@@ -61,55 +56,6 @@
 
   --max-w: 1240px;
 }
-
-/* 靛 · 石墨：冷调科技感，靛蓝紫 + 珊瑚点缀 */
-[data-palette='indigo'] {
-  --bg-rgb: 9, 10, 15;
-  --bg-0: #090a0f;
-  --bg-1: #0e1017;
-  --bg-2: #13161f;
-  --bg-3: #1a1e2a;
-  --bg-4: #252a38;
-  --accent-rgb: 139, 140, 255;
-  --accent: #8b8cff;
-  --accent-bright: #b4b5ff;
-  --accent-dim: #5d5ec4;
-  --second-rgb: 255, 138, 112;
-  --second: #ff8a70;
-  --fg-rgb: 236, 238, 245;
-  --fg: #eceef5;
-  --fg-muted: #a9adbb;
-  --fg-dim: #6d7182;
-  --mesh-1: rgba(139, 140, 255, 0.24);
-  --mesh-2: rgba(255, 138, 112, 0.12);
-  --mesh-3: rgba(60, 200, 220, 0.1);
-}
-
-/* 雾 · 青灰：冷调浅色，克莱因蓝 + 琥珀点缀 */
-[data-palette='mist'] {
-  --bg-rgb: 240, 243, 247;
-  --bg-0: #f0f3f7;
-  --bg-1: #e8ecf3;
-  --bg-2: #dfe5ee;
-  --bg-3: #d2dae6;
-  --bg-4: #bfc9d9;
-  --accent-rgb: 37, 78, 214;
-  --accent: #254ed6;
-  --accent-bright: #4a70ee;
-  --accent-dim: #1b3a9e;
-  --second-rgb: 200, 116, 26;
-  --second: #c8741a;
-  --fg-rgb: 16, 22, 33;
-  --fg: #101621;
-  --fg-muted: #454f60;
-  --fg-dim: #7c8698;
-  --shadow-rgb: 20, 32, 56;
-  --mesh-1: rgba(37, 78, 214, 0.13);
-  --mesh-2: rgba(200, 116, 26, 0.1);
-  --mesh-3: rgba(90, 200, 220, 0.14);
-}
-
-/* 霜 · 象牙纸：浅色编辑风，墨黑 + 朱红 */
 [data-palette='frost'] {
   --bg-rgb: 245, 242, 235;
   --bg-0: #f5f2eb;
@@ -131,4 +77,111 @@
   --mesh-1: rgba(217, 72, 28, 0.14);
   --mesh-2: rgba(15, 118, 110, 0.1);
   --mesh-3: rgba(255, 200, 80, 0.16);
+}
+[data-palette] {
+  color-scheme: light;
+  --edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --edge-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --elev-1: 0 1px 2px rgba(var(--shadow-rgb), 0.06), 0 2px 6px rgba(var(--shadow-rgb), 0.05);
+  --elev-2:
+    0 1px 2px rgba(var(--shadow-rgb), 0.07), 0 6px 18px rgba(var(--shadow-rgb), 0.08),
+    0 14px 32px rgba(var(--shadow-rgb), 0.05);
+  --elev-3:
+    0 2px 4px rgba(var(--shadow-rgb), 0.08), 0 12px 32px rgba(var(--shadow-rgb), 0.11),
+    0 28px 60px rgba(var(--shadow-rgb), 0.07);
+  --glass-bg: rgba(255, 255, 255, 0.66);
+  --glass-blur: 16px;
+  --glass-border: rgba(var(--fg-rgb), 0.09);
+  --inset-1: inset 0 1px 2px rgba(var(--shadow-rgb), 0.07);
+}
+[data-palette='frost'] {
+  --fg-dim: #6e665e;
+  --third: #446477;
+  --third-rgb: 68, 100, 119;
+  --mesh-3: rgba(68, 100, 119, 0.1);
+}
+[data-palette='copper'] {
+  color-scheme: dark;
+  --bg-rgb: 16, 34, 45;
+  --bg-0: #10222d;
+  --bg-1: #172f3b;
+  --bg-2: #203d49;
+  --bg-3: #2b4b58;
+  --bg-4: #3b5f6c;
+  --accent: #a0d5d4;
+  --accent-rgb: 160, 213, 212;
+  --accent-bright: #c4e9e4;
+  --accent-dim: #71b4b9;
+  --second: #e9b27e;
+  --second-rgb: 233, 178, 126;
+  --third: #9dadd8;
+  --third-rgb: 157, 173, 216;
+  --fg: #eef2ec;
+  --fg-rgb: 238, 242, 236;
+  --fg-muted: #becfd1;
+  --fg-dim: #9bb4b9;
+  --shadow-rgb: 3, 9, 16;
+  --mesh-1: rgba(160, 213, 212, 0.12);
+  --mesh-2: rgba(233, 178, 126, 0.07);
+  --mesh-3: rgba(157, 173, 216, 0.12);
+  --glass-bg: rgba(23, 47, 59, 0.78);
+  --glass-border: rgba(238, 242, 236, 0.14);
+  --edge-highlight: inset 0 1px 0 rgba(238, 242, 236, 0.06);
+  --edge-highlight-strong: inset 0 1px 0 rgba(238, 242, 236, 0.1);
+  --elev-1: 0 2px 7px rgba(3, 9, 16, 0.22);
+  --elev-2: 0 7px 22px rgba(3, 9, 16, 0.3);
+  --elev-3: 0 16px 44px rgba(3, 9, 16, 0.34);
+  --inset-1: inset 0 1px 3px rgba(3, 9, 16, 0.3);
+}
+[data-palette='mist'] {
+  --bg-rgb: 234, 208, 191;
+  --bg-0: #ead0bf;
+  --bg-1: #e0c2af;
+  --bg-2: #d6b49d;
+  --bg-3: #cda68b;
+  --bg-4: #bd9176;
+  --accent: #823b27;
+  --accent-rgb: 130, 59, 39;
+  --accent-bright: #9b4e35;
+  --accent-dim: #6d2f1f;
+  --second: #386251;
+  --second-rgb: 56, 98, 81;
+  --third: #4f6288;
+  --third-rgb: 79, 98, 136;
+  --fg: #372b26;
+  --fg-rgb: 55, 43, 38;
+  --fg-muted: #5d483c;
+  --fg-dim: #624b3d;
+  --shadow-rgb: 58, 32, 18;
+  --mesh-1: rgba(130, 59, 39, 0.12);
+  --mesh-2: rgba(56, 98, 81, 0.08);
+  --mesh-3: rgba(79, 98, 136, 0.07);
+  --glass-bg: rgba(250, 232, 217, 0.68);
+  --glass-border: rgba(55, 43, 38, 0.14);
+}
+[data-palette='indigo'] {
+  --bg-rgb: 217, 231, 212;
+  --bg-0: #d9e7d4;
+  --bg-1: #cbdcc5;
+  --bg-2: #bed1b7;
+  --bg-3: #adc4a5;
+  --bg-4: #9bb593;
+  --accent: #315f45;
+  --accent-rgb: 49, 95, 69;
+  --accent-bright: #4e7a58;
+  --accent-dim: #234c35;
+  --second: #a34940;
+  --second-rgb: 163, 73, 64;
+  --third: #4b627a;
+  --third-rgb: 75, 98, 122;
+  --fg: #213529;
+  --fg-rgb: 33, 53, 41;
+  --fg-muted: #435c45;
+  --fg-dim: #50684e;
+  --shadow-rgb: 22, 45, 28;
+  --mesh-1: rgba(49, 95, 69, 0.12);
+  --mesh-2: rgba(163, 73, 64, 0.07);
+  --mesh-3: rgba(75, 98, 122, 0.08);
+  --glass-bg: rgba(232, 242, 226, 0.68);
+  --glass-border: rgba(33, 53, 41, 0.13);
 }

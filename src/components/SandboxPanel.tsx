@@ -497,7 +497,7 @@ export default function SandboxPanel({ lang, state, update }: PanelProps) {
                     )}
                   </h3>
                   <strong>
-                    {number(sim[mode].meanHands)}{' '}
+                    {sim[mode].completed ? number(sim[mode].meanHands) : '—'}{' '}
                     <small>{tr(lang, '手 / 轮', 'hands / round')}</small>
                   </strong>
                   <p>
@@ -535,13 +535,15 @@ export default function SandboxPanel({ lang, state, update }: PanelProps) {
                             mode === 'finite' ? '有限' : '无限',
                             mode === 'finite' ? 'Finite' : 'Infinite',
                           )}{' '}
-                          <b>{number(rate * 100)}%</b>
+                          <b>{sim[mode].completed ? `${number(rate * 100)}%` : '—'}</b>
                         </span>
                         <div className="probability-track">
                           <i style={{ width: `${rate * 100}%` }} />
                         </div>
                         <small>
-                          {number(seat.interval[0] * 100)}–{number(seat.interval[1] * 100)}%
+                          {sim[mode].completed
+                            ? `${number(seat.interval[0] * 100)}–${number(seat.interval[1] * 100)}%`
+                            : '—'}
                         </small>
                       </div>
                     );
@@ -576,7 +578,8 @@ export default function SandboxPanel({ lang, state, update }: PanelProps) {
                         mode === 'finite' ? '有限' : '无限',
                         mode === 'finite' ? 'Finite' : 'Infinite',
                       )}{' '}
-                      · {tr(lang, '平均', 'Mean')} {signed(sim[mode].seats[selected].mean)} BB
+                      · {tr(lang, '平均', 'Mean')}{' '}
+                      {sim[mode].completed ? `${signed(sim[mode].seats[selected].mean)} BB` : '—'}
                     </h3>
                     <table className="data-table">
                       <thead>

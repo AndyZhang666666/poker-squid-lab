@@ -128,9 +128,9 @@ export default function Page() {
               aria-label={tr(lang, '配色', 'Theme')}
             >
               <option value="frost">{tr(lang, '霜 · 象牙纸', 'Frost · Ivory')}</option>
-              <option value="mist">{tr(lang, '雾 · 青灰', 'Mist · Blue')}</option>
-              <option value="copper">{tr(lang, '铜 · 墨绿', 'Copper · Forest')}</option>
-              <option value="indigo">{tr(lang, '靛 · 石墨', 'Indigo · Graphite')}</option>
+              <option value="copper">{tr(lang, '夜 · 深海', 'Night · Deep Sea')}</option>
+              <option value="mist">{tr(lang, '陶 · 赤砂', 'Clay · Red Sand')}</option>
+              <option value="indigo">{tr(lang, '野 · 苔原', 'Wild · Tundra')}</option>
             </select>
           </div>
         </div>
