@@ -32,7 +32,7 @@
   --shadow-rgb: 0, 0, 0;
   --mesh-1: rgba(216, 162, 122, 0.22);
   --mesh-2: rgba(143, 196, 168, 0.14);
-  --mesh-3: rgba(120, 90, 200, 0.10);
+  --mesh-3: rgba(120, 90, 200, 0.1);
 
   /* ---- 别名：兼容原有样式 ---- */
   --ink-900: var(--bg-0);
@@ -63,49 +63,72 @@
 }
 
 /* 靛 · 石墨：冷调科技感，靛蓝紫 + 珊瑚点缀 */
-[data-palette="indigo"] {
+[data-palette='indigo'] {
   --bg-rgb: 9, 10, 15;
-  --bg-0: #090a0f; --bg-1: #0e1017; --bg-2: #13161f; --bg-3: #1a1e2a; --bg-4: #252a38;
+  --bg-0: #090a0f;
+  --bg-1: #0e1017;
+  --bg-2: #13161f;
+  --bg-3: #1a1e2a;
+  --bg-4: #252a38;
   --accent-rgb: 139, 140, 255;
-  --accent: #8b8cff; --accent-bright: #b4b5ff; --accent-dim: #5d5ec4;
+  --accent: #8b8cff;
+  --accent-bright: #b4b5ff;
+  --accent-dim: #5d5ec4;
   --second-rgb: 255, 138, 112;
   --second: #ff8a70;
   --fg-rgb: 236, 238, 245;
-  --fg: #eceef5; --fg-muted: #a9adbb; --fg-dim: #6d7182;
+  --fg: #eceef5;
+  --fg-muted: #a9adbb;
+  --fg-dim: #6d7182;
   --mesh-1: rgba(139, 140, 255, 0.24);
   --mesh-2: rgba(255, 138, 112, 0.12);
-  --mesh-3: rgba(60, 200, 220, 0.10);
+  --mesh-3: rgba(60, 200, 220, 0.1);
 }
 
 /* 雾 · 青灰：冷调浅色，克莱因蓝 + 琥珀点缀 */
-[data-palette="mist"] {
+[data-palette='mist'] {
   --bg-rgb: 240, 243, 247;
-  --bg-0: #f0f3f7; --bg-1: #e8ecf3; --bg-2: #dfe5ee; --bg-3: #d2dae6; --bg-4: #bfc9d9;
+  --bg-0: #f0f3f7;
+  --bg-1: #e8ecf3;
+  --bg-2: #dfe5ee;
+  --bg-3: #d2dae6;
+  --bg-4: #bfc9d9;
   --accent-rgb: 37, 78, 214;
-  --accent: #254ed6; --accent-bright: #4a70ee; --accent-dim: #1b3a9e;
+  --accent: #254ed6;
+  --accent-bright: #4a70ee;
+  --accent-dim: #1b3a9e;
   --second-rgb: 200, 116, 26;
   --second: #c8741a;
   --fg-rgb: 16, 22, 33;
-  --fg: #101621; --fg-muted: #454f60; --fg-dim: #7c8698;
+  --fg: #101621;
+  --fg-muted: #454f60;
+  --fg-dim: #7c8698;
   --shadow-rgb: 20, 32, 56;
   --mesh-1: rgba(37, 78, 214, 0.13);
-  --mesh-2: rgba(200, 116, 26, 0.10);
+  --mesh-2: rgba(200, 116, 26, 0.1);
   --mesh-3: rgba(90, 200, 220, 0.14);
 }
 
 /* 霜 · 象牙纸：浅色编辑风，墨黑 + 朱红 */
-[data-palette="frost"] {
+[data-palette='frost'] {
   --bg-rgb: 245, 242, 235;
-  --bg-0: #f5f2eb; --bg-1: #efebe2; --bg-2: #e8e3d8; --bg-3: #ded8cb; --bg-4: #d0c9ba;
+  --bg-0: #f5f2eb;
+  --bg-1: #efebe2;
+  --bg-2: #e8e3d8;
+  --bg-3: #ded8cb;
+  --bg-4: #d0c9ba;
   --accent-rgb: 217, 72, 28;
-  --accent: #d9481c; --accent-bright: #ef6a3c; --accent-dim: #a8391a;
+  --accent: #d9481c;
+  --accent-bright: #ef6a3c;
+  --accent-dim: #a8391a;
   --second-rgb: 15, 118, 110;
   --second: #0f766e;
   --fg-rgb: 20, 18, 16;
-  --fg: #141210; --fg-muted: #4d4843; --fg-dim: #857e76;
+  --fg: #141210;
+  --fg-muted: #4d4843;
+  --fg-dim: #857e76;
   --shadow-rgb: 40, 30, 20;
   --mesh-1: rgba(217, 72, 28, 0.14);
-  --mesh-2: rgba(15, 118, 110, 0.10);
+  --mesh-2: rgba(15, 118, 110, 0.1);
   --mesh-3: rgba(255, 200, 80, 0.16);
 }
-

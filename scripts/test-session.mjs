@@ -1,6 +1,62 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {challenges} from '../src/lib/challenges.ts';import {freshState,decodeSession,mergeSession,recordAnswer,simulationInput,isFreshResult} from '../src/lib/session.ts';import {simulate} from '../src/lib/simulation.ts';
-test('all twelve challenges have one unique computed answer',()=>{const qs=challenges();assert.equal(qs.length,12);assert.equal(new Set(qs.map(q=>q.id)).size,12);for(const q of qs){assert.equal(q.options.filter(o=>o.id===q.answer).length,1);assert.equal(new Set(q.options.map(o=>o.id)).size,q.options.length);}});
-test('session and paired results round-trip; stale result remains tied to original conditions',()=>{let s=freshState();s.simulation=simulate(simulationInput(s.sandbox));assert.deepEqual(decodeSession(JSON.stringify(s)),s);assert.equal(isFreshResult(s),true);s.sandbox.unit=10;assert.equal(isFreshResult(s),false);assert.equal(decodeSession(JSON.stringify(s)).simulation.input.unit,5);});
-test('damaged, unknown-version, invalid events and fabricated results are rejected',()=>{const checks=[s=>s.rulesVersion='future',s=>s.sandbox.events.push({kind:'win',seat:9,shown:true}),s=>s.sandbox.cursor=10,s=>s.spot.call=100,s=>s.sandbox.weights=[1,2],s=>s.sandbox.chopRate=1,s=>s.attempts.push({id:'x',question:'missing',choice:'1',at:new Date().toISOString()})];for(const change of checks){const s=freshState();change(s);assert.equal(decodeSession(JSON.stringify(s)),null);}const s=freshState();s.simulation=simulate(simulationInput(s.sandbox));s.simulation.finite.seats[0].mean+=1;assert.equal(decodeSession(JSON.stringify(s)),null);assert.equal(decodeSession('{'),null);});
-test('attempt merge and repeated click are idempotent; full retained progress imports',()=>{let s=freshState();const a={id:'x',question:challenges()[0].id,choice:'1',at:'2026-11-07T01:00:00Z'};s=recordAnswer(s,a);assert.strictEqual(recordAnswer(s,a),s);assert.equal(mergeSession(s,s).attempts.length,1);for(let i=0;i<210;i++)s=recordAnswer(s,{...a,id:String(i)});assert.equal(s.attempts.length,200);assert.deepEqual(decodeSession(JSON.stringify(s)),s);});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { challenges } from '../src/lib/challenges.ts';
+import {
+  freshState,
+  decodeSession,
+  mergeSession,
+  recordAnswer,
+  simulationInput,
+  isFreshResult,
+} from '../src/lib/session.ts';
+import { simulate } from '../src/lib/simulation.ts';
+test('all twelve challenges have one unique computed answer', () => {
+  const qs = challenges();
+  assert.equal(qs.length, 12);
+  assert.equal(new Set(qs.map((q) => q.id)).size, 12);
+  for (const q of qs) {
+    assert.equal(q.options.filter((o) => o.id === q.answer).length, 1);
+    assert.equal(new Set(q.options.map((o) => o.id)).size, q.options.length);
+  }
+});
+test('session and paired results round-trip; stale result remains tied to original conditions', () => {
+  let s = freshState();
+  s.simulation = simulate(simulationInput(s.sandbox));
+  assert.deepEqual(decodeSession(JSON.stringify(s)), s);
+  assert.equal(isFreshResult(s), true);
+  s.sandbox.unit = 10;
+  assert.equal(isFreshResult(s), false);
+  assert.equal(decodeSession(JSON.stringify(s)).simulation.input.unit, 5);
+});
+test('damaged, unknown-version, invalid events and fabricated results are rejected', () => {
+  const checks = [
+    (s) => (s.rulesVersion = 'future'),
+    (s) => s.sandbox.events.push({ kind: 'win', seat: 9, shown: true }),
+    (s) => (s.sandbox.cursor = 10),
+    (s) => (s.spot.call = 100),
+    (s) => (s.sandbox.weights = [1, 2]),
+    (s) => (s.sandbox.chopRate = 1),
+    (s) =>
+      s.attempts.push({ id: 'x', question: 'missing', choice: '1', at: new Date().toISOString() }),
+  ];
+  for (const change of checks) {
+    const s = freshState();
+    change(s);
+    assert.equal(decodeSession(JSON.stringify(s)), null);
+  }
+  const s = freshState();
+  s.simulation = simulate(simulationInput(s.sandbox));
+  s.simulation.finite.seats[0].mean += 1;
+  assert.equal(decodeSession(JSON.stringify(s)), null);
+  assert.equal(decodeSession('{'), null);
+});
+test('attempt merge and repeated click are idempotent; full retained progress imports', () => {
+  let s = freshState();
+  const a = { id: 'x', question: challenges()[0].id, choice: '1', at: '2026-11-07T01:00:00Z' };
+  s = recordAnswer(s, a);
+  assert.strictEqual(recordAnswer(s, a), s);
+  assert.equal(mergeSession(s, s).attempts.length, 1);
+  for (let i = 0; i < 210; i++) s = recordAnswer(s, { ...a, id: String(i) });
+  assert.equal(s.attempts.length, 200);
+  assert.deepEqual(decodeSession(JSON.stringify(s)), s);
+});

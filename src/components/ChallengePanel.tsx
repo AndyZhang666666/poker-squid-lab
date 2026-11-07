@@ -1,16 +1,183 @@
 'use client';
-import {useMemo,useRef,useState} from 'react';
-import {challenges} from '@/lib/challenges';
-import {recordAnswer} from '@/lib/session';
-import {tr,type PanelProps} from './Common';
-export default function ChallengePanel({lang,state,update}:PanelProps){
- const questions=useMemo(challenges,[]),[index,setIndex]=useState(()=>Math.max(0,questions.findIndex(q=>q.id===state.attempts.at(-1)?.question))),[choice,setChoice]=useState<string|null>(null),[reviewOnly,setReviewOnly]=useState(false),locked=useRef(false);
- const latest=new Map(state.attempts.map(a=>[a.question,a])),completed=questions.filter(q=>latest.get(q.id)?.choice===q.answer),wrong=questions.filter(q=>latest.has(q.id)&&latest.get(q.id)?.choice!==q.answer),available=reviewOnly?wrong:questions,q=questions[index];
- const select=(i:number)=>{setIndex(i);setChoice(null);locked.current=false;};
- const answer=(value:string)=>{if(locked.current)return;locked.current=true;setChoice(value);update(s=>recordAnswer(s,{id:crypto.randomUUID(),question:q.id,choice:value,at:new Date().toISOString()}));};
- const changeReview=()=>{const next=!reviewOnly;setReviewOnly(next);select(next&&wrong.length?questions.findIndex(q=>q.id===wrong[0].id):0);};
- const next=()=>{const position=available.findIndex(item=>item.id===q.id),item=available[(position+1)%available.length];if(item)select(questions.findIndex(q=>q.id===item.id));};
- return <div className="workspace"><div className="intro-row"><div><h2 className="workspace-title">{tr(lang,'把容易漏掉的，再想清楚一次','Think through the details that are easy to miss')}</h2><p>{tr(lang,'十二个小局面。答案来自同一套规则与账本。','Twelve short spots, graded by the same rules and ledger.')}</p></div><button aria-pressed={reviewOnly} onClick={changeReview} disabled={!wrong.length&&!reviewOnly}>{tr(lang,`错题重练 · ${wrong.length}`,`Review mistakes · ${wrong.length}`)}</button></div>
- <div className="challenge-grid"><section className="challenge-question panel" aria-labelledby="challenge-title"><p className="caption">{q.group[lang]} · {index+1} / 12</p><h2 id="challenge-title">{q.prompt[lang]}</h2><div className="answer-options">{q.options.map(option=><button className={choice===option.id?'chosen':''} key={option.id} disabled={choice!==null} onClick={()=>answer(option.id)} aria-pressed={choice===option.id}>{option.label[lang]}</button>)}</div>{choice!==null?<div className={`challenge-feedback ${choice===q.answer?'correct':'incorrect'}`} role="status"><h3>{choice===q.answer?tr(lang,'这次算对了','That adds up'):tr(lang,'这里容易漏掉一步','There is one detail to revisit')}</h3><p>{q.explanation[lang]}</p><div className="choice-actions"><button className="primary" onClick={next}>{tr(lang,'下一题 →','Next spot →')}</button><button onClick={()=>select(index)}>{tr(lang,'再想一次','Try this spot again')}</button></div></div>:<p className="muted">{tr(lang,'先选你的答案，之后展开推导。','Choose an answer before revealing the reasoning.')}</p>}{reviewOnly&&!wrong.length?<p className="notice">{tr(lang,'当前错题已全部答对，可以继续完整题组。','All current mistakes have been answered correctly. Return to the full set whenever you like.')}</p>:null}</section>
- <aside className="challenge-progress panel" aria-labelledby="progress-title"><h2 id="progress-title">{tr(lang,'你的这轮理解','Your current understanding')}</h2><div className="progress-number">{completed.length}<small>/ 12</small></div><p>{tr(lang,'最近一次作答符合规则的题目','Spots answered correctly on the latest attempt')}</p><div className="question-nav" aria-label={tr(lang,'选择挑战题','Choose a challenge')}>{questions.map((item,i)=>{const a=latest.get(item.id);return <button className={a?(a.choice===item.answer?'done':'needs-review'):''} aria-current={index===i?'step':undefined} key={item.id} aria-label={`${i+1}. ${item.prompt[lang]}`} onClick={()=>{setReviewOnly(false);select(i);}}>{i+1}<span>{a?(a.choice===item.answer?'✓':'↺'):'·'}</span></button>;})}</div><p className="caption">{tr(lang,'进度只保存在当前浏览器；可在页面底部导出或导入。保留最近 200 次作答，这里不作为牌技评分。','Progress stays in this browser. Export or import below; the latest 200 attempts are retained. This is a rule-learning record.')}</p><div className="challenge-legend"><span>✓ {tr(lang,'已理解','Correct')}</span><span>↺ {tr(lang,'待重练','Review')}</span></div></aside></div></div>;
+import { useMemo, useRef, useState } from 'react';
+import { challenges } from '@/lib/challenges';
+import { recordAnswer } from '@/lib/session';
+import { tr, type PanelProps } from './Common';
+export default function ChallengePanel({ lang, state, update }: PanelProps) {
+  const questions = useMemo(challenges, []),
+    [index, setIndex] = useState(() =>
+      Math.max(
+        0,
+        questions.findIndex((q) => q.id === state.attempts.at(-1)?.question),
+      ),
+    ),
+    [choice, setChoice] = useState<string | null>(null),
+    [reviewOnly, setReviewOnly] = useState(false),
+    locked = useRef(false);
+  const latest = new Map(state.attempts.map((a) => [a.question, a])),
+    completed = questions.filter((q) => latest.get(q.id)?.choice === q.answer),
+    wrong = questions.filter((q) => latest.has(q.id) && latest.get(q.id)?.choice !== q.answer),
+    available = reviewOnly ? wrong : questions,
+    q = questions[index];
+  const select = (i: number) => {
+    setIndex(i);
+    setChoice(null);
+    locked.current = false;
+  };
+  const answer = (value: string) => {
+    if (locked.current) return;
+    locked.current = true;
+    setChoice(value);
+    update((s) =>
+      recordAnswer(s, {
+        id: crypto.randomUUID(),
+        question: q.id,
+        choice: value,
+        at: new Date().toISOString(),
+      }),
+    );
+  };
+  const changeReview = () => {
+    const next = !reviewOnly;
+    setReviewOnly(next);
+    select(next && wrong.length ? questions.findIndex((q) => q.id === wrong[0].id) : 0);
+  };
+  const next = () => {
+    const position = available.findIndex((item) => item.id === q.id),
+      item = available[(position + 1) % available.length];
+    if (item) select(questions.findIndex((q) => q.id === item.id));
+  };
+  return (
+    <div className="workspace">
+      <div className="intro-row">
+        <div>
+          <h2 className="workspace-title">
+            {tr(
+              lang,
+              '把容易漏掉的，再想清楚一次',
+              'Think through the details that are easy to miss',
+            )}
+          </h2>
+          <p>
+            {tr(
+              lang,
+              '十二个小局面。答案来自同一套规则与账本。',
+              'Twelve short spots, graded by the same rules and ledger.',
+            )}
+          </p>
+        </div>
+        <button
+          aria-pressed={reviewOnly}
+          onClick={changeReview}
+          disabled={!wrong.length && !reviewOnly}
+        >
+          {tr(lang, `错题重练 · ${wrong.length}`, `Review mistakes · ${wrong.length}`)}
+        </button>
+      </div>
+      <div className="challenge-grid">
+        <section className="challenge-question panel" aria-labelledby="challenge-title">
+          <p className="caption">
+            {q.group[lang]} · {index + 1} / 12
+          </p>
+          <h2 id="challenge-title">{q.prompt[lang]}</h2>
+          <div className="answer-options">
+            {q.options.map((option) => (
+              <button
+                className={choice === option.id ? 'chosen' : ''}
+                key={option.id}
+                disabled={choice !== null}
+                onClick={() => answer(option.id)}
+                aria-pressed={choice === option.id}
+              >
+                {option.label[lang]}
+              </button>
+            ))}
+          </div>
+          {choice !== null ? (
+            <div
+              className={`challenge-feedback ${choice === q.answer ? 'correct' : 'incorrect'}`}
+              role="status"
+            >
+              <h3>
+                {choice === q.answer
+                  ? tr(lang, '这次算对了', 'That adds up')
+                  : tr(lang, '这里容易漏掉一步', 'There is one detail to revisit')}
+              </h3>
+              <p>{q.explanation[lang]}</p>
+              <div className="choice-actions">
+                <button className="primary" onClick={next}>
+                  {tr(lang, '下一题 →', 'Next spot →')}
+                </button>
+                <button onClick={() => select(index)}>
+                  {tr(lang, '再想一次', 'Try this spot again')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="muted">
+              {tr(
+                lang,
+                '先选你的答案，之后展开推导。',
+                'Choose an answer before revealing the reasoning.',
+              )}
+            </p>
+          )}
+          {reviewOnly && !wrong.length ? (
+            <p className="notice">
+              {tr(
+                lang,
+                '当前错题已全部答对，可以继续完整题组。',
+                'All current mistakes have been answered correctly. Return to the full set whenever you like.',
+              )}
+            </p>
+          ) : null}
+        </section>
+        <aside className="challenge-progress panel" aria-labelledby="progress-title">
+          <h2 id="progress-title">{tr(lang, '你的这轮理解', 'Your current understanding')}</h2>
+          <div className="progress-number">
+            {completed.length}
+            <small>/ 12</small>
+          </div>
+          <p>
+            {tr(
+              lang,
+              '最近一次作答符合规则的题目',
+              'Spots answered correctly on the latest attempt',
+            )}
+          </p>
+          <div className="question-nav" aria-label={tr(lang, '选择挑战题', 'Choose a challenge')}>
+            {questions.map((item, i) => {
+              const a = latest.get(item.id);
+              return (
+                <button
+                  className={a ? (a.choice === item.answer ? 'done' : 'needs-review') : ''}
+                  aria-current={index === i ? 'step' : undefined}
+                  key={item.id}
+                  aria-label={`${i + 1}. ${item.prompt[lang]}`}
+                  onClick={() => {
+                    setReviewOnly(false);
+                    select(i);
+                  }}
+                >
+                  {i + 1}
+                  <span>{a ? (a.choice === item.answer ? '✓' : '↺') : '·'}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="caption">
+            {tr(
+              lang,
+              '进度只保存在当前浏览器；可在页面底部导出或导入。保留最近 200 次作答，这里不作为牌技评分。',
+              'Progress stays in this browser. Export or import below; the latest 200 attempts are retained. This is a rule-learning record.',
+            )}
+          </p>
+          <div className="challenge-legend">
+            <span>✓ {tr(lang, '已理解', 'Correct')}</span>
+            <span>↺ {tr(lang, '待重练', 'Review')}</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
 }

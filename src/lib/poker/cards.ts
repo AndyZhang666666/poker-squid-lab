@@ -1,15 +1,19 @@
 export const RANKS = '23456789TJQKA';
 export const SUITS = 'cdhs';
 export type Card = string;
-export const DECK: Card[] = [...RANKS].flatMap(rank => [...SUITS].map(suit => rank + suit));
-export const SUIT_LABELS: Record<string, string> = {c: '♣', d: '♦', h: '♥', s: '♠'};
+export const DECK: Card[] = [...RANKS].flatMap((rank) => [...SUITS].map((suit) => rank + suit));
+export const SUIT_LABELS: Record<string, string> = { c: '♣', d: '♦', h: '♥', s: '♠' };
 
 export function isCard(value: unknown): value is Card {
   return typeof value === 'string' && /^[2-9TJQKA][cdhs]$/.test(value);
 }
 
 export function assertCards(cards: unknown, count?: number): asserts cards is Card[] {
-  if (!Array.isArray(cards) || (count !== undefined && cards.length !== count) || !cards.every(isCard)) {
+  if (
+    !Array.isArray(cards) ||
+    (count !== undefined && cards.length !== count) ||
+    !cards.every(isCard)
+  ) {
     throw new Error('请选择有效的点数与花色。');
   }
   if (new Set(cards).size !== cards.length) throw new Error('同一张牌不能出现两次。');
@@ -40,6 +44,6 @@ export function seededRandom(seed: number): () => number {
 export function choose(n: number, k: number): number {
   if (k < 0 || k > n) return 0;
   let result = 1;
-  for (let i = 1; i <= k; i++) result = result * (n - i + 1) / i;
+  for (let i = 1; i <= k; i++) result = (result * (n - i + 1)) / i;
   return Math.round(result);
 }

@@ -1,33 +1,614 @@
 'use client';
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {PREFIX,replay,rules,seatName,type HandEvent,type Mode} from '@/lib/rules';
-import {isFreshResult,simulationInput,downloadJSON} from '@/lib/session';
-import type {SimulationResult} from '@/lib/simulation';
-import {Ledger,Marks,tr,number,signed,type PanelProps} from './Common';
-export default function SandboxPanel({lang,state,update}:PanelProps){
- const b=state.sandbox,[players,setPlayers]=useState(String(b.players)),[unit,setUnit]=useState(String(b.unit)),[shown,setShown]=useState(true),[message,setMessage]=useState(''),[running,setRunning]=useState(false),[progress,setProgress]=useState(0),[focusSeat,setFocusSeat]=useState(b.players-1);
- const worker=useRef<Worker|null>(null);useEffect(()=>()=>worker.current?.terminate(),[]);
- useEffect(()=>{setPlayers(String(b.players));setUnit(String(b.unit));setFocusSeat(v=>Math.min(v,b.players-1));},[b.players,b.unit]);
- const timelines=useMemo(()=>({finite:replay(rules('finite',b.players,b.unit),b.events),infinite:replay(rules('infinite',b.players,b.unit),b.events)}),[b.players,b.unit,b.events]);
- const round=timelines[b.mode][b.cursor],bothEnded=timelines.finite[b.cursor].ended&&timelines.infinite[b.cursor].ended;
- const patch=(value:Partial<typeof b>)=>update(s=>({...s,sandbox:{...s.sandbox,...value}}));
- const append=(event:HandEvent)=>{if(b.cursor>=1000||bothEnded)return;patch({events:[...b.events.slice(0,b.cursor),event],cursor:b.cursor+1});};
- const setup=()=>{try{const n=Number(players),u=Number(unit);rules(b.mode,n,u);if(n!==b.players){patch({players:n,unit:u,events:[],cursor:0,weights:Array(n).fill(1)});setFocusSeat(n-1);setMessage(tr(lang,'已新开一轮，座位改变后重新发标。','New round: the changed lineup starts without markers.'));}else{patch({unit:u});setMessage(tr(lang,'基础奖励已更新，赢家历史按新规则重放。','Reward updated. The same history has been replayed.'));}}catch{setMessage(tr(lang,'请选择 3–9 人，基础奖励为 0–100BB，最多两位小数。','Choose 3–9 players and a 0–100BB reward with at most two decimals.'));}};
- const demo=()=>{patch({players:6,weights:[1,1,1,1,1,1],events:PREFIX,cursor:PREFIX.length});setPlayers('6');setFocusSeat(5);setMessage(tr(lang,'已载入首屏的六手历史，可继续点选赢家。','Loaded the six-hand opening history. Choose the next winner.'));};
- const cancel=()=>{worker.current?.terminate();worker.current=null;setRunning(false);setMessage(tr(lang,'已停止模拟，上一组完整结果仍保留。','Simulation stopped. The previous complete result remains.'));};
- const run=()=>{worker.current?.terminate();setRunning(true);setProgress(0);setMessage('');try{const w=new Worker(new URL('../workers/simulation.worker.ts',import.meta.url));worker.current=w;w.onmessage=(e:MessageEvent<{type:string;done:number;result:SimulationResult}>)=>{if(e.data.type==='progress')setProgress(e.data.done);if(e.data.type==='result'){update(s=>({...s,simulation:e.data.result}));setRunning(false);w.terminate();worker.current=null;}if(e.data.type==='error'){setMessage(tr(lang,'这组参数无法模拟，请检查频率和种子。','Unable to simulate. Check frequencies and seed.'));setRunning(false);w.terminate();worker.current=null;}};w.onerror=()=>{setMessage(tr(lang,'计算线程没有完成；设置已保留，可以重试。','The worker did not finish. Settings remain; try again.'));setRunning(false);w.terminate();worker.current=null;};w.postMessage(simulationInput(b));}catch{setRunning(false);setMessage(tr(lang,'浏览器无法启动计算线程；沙盘仍可使用。','The worker could not start. Manual replay remains available.'));}};
- const sim=state.simulation,fresh=isFreshResult(state),selected=Math.min(focusSeat,(sim?.input.players??b.players)-1);
- return <div className="workspace"><div className="intro-row"><div><h2 className="workspace-title">{tr(lang,'同一段历史，换一种规则','Replay the same history under different rules')}</h2><p>{tr(lang,'点一个座位，让它赢下这手主池。结算由规则发生，不靠手填。','Choose a main-pot winner. The rules produce the ledger.')}</p></div><button onClick={demo} disabled={running}>{tr(lang,'载入首屏六手历史','Load the opening six hands')}</button></div>
- <div className="sandbox-grid"><section className="panel table-panel" aria-labelledby="table-title"><div className="section-heading"><h2 id="table-title">{tr(lang,'让标记走一轮','Follow the markers')}</h2><div className="segmented">{(['finite','infinite'] as Mode[]).map(mode=><button key={mode} aria-pressed={mode===b.mode} onClick={()=>patch({mode})}>{tr(lang,mode==='finite'?'有限':'无限',mode==='finite'?'Finite':'Infinite')}</button>)}</div></div>
- <div className="round-counts"><span>{tr(lang,'已发标记','Issued')}<b>{round.marks.reduce((a,c)=>a+c,0)}</b></span><span>{tr(lang,'剩余标记','Remaining')}<b>{round.remaining}</b></span><span>{tr(lang,'下次待发','Next award')}<b>{round.ended?'—':Math.min(round.nextAward,round.remaining)}</b></span></div><Marks round={round} lang={lang} disabled={bothEnded||b.cursor>=1000} onWin={seat=>append({kind:'win',seat,shown})}/><div className="table-actions"><button onClick={()=>append({kind:'chop'})} disabled={bothEnded||b.cursor>=1000}>{tr(lang,'这手切池','Chopped main pot')}</button><button onClick={()=>append({kind:'side-only'})} disabled={bothEnded||b.cursor>=1000}>{tr(lang,'仅记录边池结果','Side-pot-only result')}</button></div><label className="checkbox"><input type="checkbox" checked={shown} onChange={e=>setShown(e.target.checked)}/>{tr(lang,'这手主池赢家亮牌','The main-pot winner reveals their cards')}</label><p className="caption">{tr(lang,'沙盘只记录取标资格，不模拟整手下注。首次获标要亮牌；仅有边池结果不会替任何人发主池标记。','This sandbox records qualification, not a full betting hand. First awards require a reveal; side-pot-only events award no markers.')}</p>
- <div className="mode-status">{(['finite','infinite'] as const).map(mode=><span key={mode}>{tr(lang,mode==='finite'?'有限':'无限',mode==='finite'?'Finite':'Infinite')} · {tr(lang,timelines[mode][b.cursor].ended?'已结束':'进行中',timelines[mode][b.cursor].ended?'Complete':'In progress')}</span>)}</div>{round.ended&&!bothEnded?<p className="notice">{tr(lang,'当前模式已结束。继续追加事件只会推进另一种模式。','This mode has ended. Additional events advance only the other mode.')}</p>:null}
- <details className="advanced"><summary>{tr(lang,'人数与基础奖励','Lineup and base reward')}</summary><div className="form-grid"><label>{tr(lang,'人数','Players')}<select value={players} onChange={e=>setPlayers(e.target.value)} disabled={running}>{[3,4,5,6,7,8,9].map(n=><option key={n}>{n}</option>)}</select></label><label>{tr(lang,'每份奖励 BB','Reward per unit BB')}<input type="number" value={unit} onChange={e=>setUnit(e.target.value)} min="0" max="100" step=".01" disabled={running}/></label></div><p className="caption">{tr(lang,'改变人数会新开一轮；只改基础奖励则保留并重放赢家历史。','Changing the lineup starts a new round. A reward change preserves and replays the history.')}</p><button onClick={setup} disabled={running}>{Number(players)!==b.players?tr(lang,'应用并新开一轮','Apply and start new round'):tr(lang,'应用并重放历史','Apply and replay')}</button></details>
- <div className="timeline-heading"><h3>{tr(lang,'逐手回放','Event replay')}</h3><span>{b.cursor} / {b.events.length}</span></div><div className="replay-controls"><button onClick={()=>patch({cursor:Math.max(0,b.cursor-1)})} disabled={!b.cursor}>{tr(lang,'← 上一步 / 撤销','← Back / undo')}</button><button onClick={()=>patch({cursor:Math.min(b.events.length,b.cursor+1)})} disabled={b.cursor===b.events.length}>{tr(lang,'下一步 →','Next →')}</button></div>{!b.events.length?<p className="empty">{tr(lang,'尚无事件，点选上方任一座位开始。','No events yet. Choose a seat above to begin.')}</p>:<ol className="event-list">{b.events.map((e,i)=><li key={i}><button aria-current={b.cursor===i+1?'step':undefined} onClick={()=>patch({cursor:i+1})}><span>{i+1}</span>{e.kind==='win'?`${seatName(e.seat,b.players)} · ${tr(lang,e.shown?'主池独赢并亮牌':'主池独赢未亮牌',e.shown?'main pot, shown':'main pot, not shown')}`:tr(lang,e.kind==='chop'?'切池':'仅边池结果',e.kind==='chop'?'Chop':'Side-pot only')}</button></li>)}</ol>}<p className="caption">{tr(lang,'回到较早事件后新增赢家，会从该处创建新的后续历史。最多保留 1,000 个事件。','Adding from an earlier point replaces the later branch. Up to 1,000 events are retained.')}</p></section><Ledger round={round} lang={lang}/></div>
- <section className="simulation-section" aria-labelledby="simulation-title"><div className="section-heading"><div><h2 id="simulation-title">{tr(lang,'让两种规则，遇见同一段未来','Let both rules encounter the same future')}</h2><p className="muted">{tr(lang,'主池赢家频率由你假设；每轮两种模式使用相同的赢家与切池事件。','You set winner frequencies. Both modes receive the same winner and chop events in each trial.')}</p></div><div className="simulation-actions"><button className="primary" onClick={run} disabled={running}>{running?tr(lang,'模拟进行中…','Simulating…'):tr(lang,'模拟 5,000 轮','Simulate 5,000 rounds')}</button>{running?<button onClick={cancel}>{tr(lang,'停止','Stop')}</button>:null}</div></div>
- <details className="simulation-settings"><summary>{tr(lang,'调整赢家频率、切池与种子','Edit winner frequencies, chops and seed')}</summary><div className="weight-grid">{b.weights.map((weight,i)=><label key={`${b.players}-${i}`}>{seatName(i,b.players)} <small>{number(weight/b.weights.reduce((a,c)=>a+c,0)*100,1)}%</small><input type="number" min="1" max="100" value={weight} disabled={running} onChange={e=>{const value=Number(e.target.value);if(value>=1&&value<=100){const weights=[...b.weights];weights[i]=value;patch({weights});}}}/></label>)}</div><div className="form-grid"><label>{tr(lang,'切池概率 %','Chop probability %')}<input type="number" min="0" max="50" value={b.chopRate*100} disabled={running} onChange={e=>{const value=Number(e.target.value);if(value>=0&&value<=50)patch({chopRate:value/100});}}/></label><label>{tr(lang,'随机种子','Random seed')}<input type="number" min="0" max="4294967295" value={b.seed} disabled={running} onChange={e=>{const seed=Number(e.target.value);if(Number.isInteger(seed)&&seed>=0&&seed<=0xffffffff)patch({seed});}}/></label></div><p className="caption">{tr(lang,'相对频率填 1–100，自动归一化；每手独立，玩家不会因有无标记而改变打法。','Relative weights 1–100 are normalized. Hands are independent; players do not adapt to marker holdings.')}</p></details>
- {running?<div className="progress" role="status"><progress value={progress} max="5000" aria-label={tr(lang,'模拟进度','Simulation progress')}/><span>{number(progress)} / 5,000</span></div>:null}{message?<p className="notice" role="status">{message}</p>:null}
- {sim?<div className={`simulation-results ${fresh?'':'stale'}`}><div className="result-stamp"><span>{tr(lang,`结果属于：${sim.input.players} 人 · ${sim.input.unit}BB · 种子 ${sim.input.seed}`,`Result: ${sim.input.players} players · ${sim.input.unit}BB · seed ${sim.input.seed}`)}</span>{!fresh?<b>{tr(lang,'参数已改，请重新模拟','Settings changed · rerun required')}</b>:null}</div><div className="sim-metrics">{(['finite','infinite'] as const).map(mode=><div key={mode}><h3>{tr(lang,mode==='finite'?'有限鱿鱼':'无限鱿鱼',mode==='finite'?'Finite squid':'Infinite squid')}</h3><strong>{number(sim[mode].meanHands)} <small>{tr(lang,'手 / 轮','hands / round')}</small></strong><p>{tr(lang,`完成 ${sim[mode].completed} · 未完成 ${sim[mode].unfinished}`,`${sim[mode].completed} complete · ${sim[mode].unfinished} unfinished`)}</p></div>)}</div>
- <h3>{tr(lang,'谁更容易在结束时没有标记？','Who is more likely to finish unmarked?')}</h3><p className="caption">{tr(lang,'无标比例按已完成样本计算；95% Wilson 区间只表示抽样误差，不包含频率假设的误差。','Rates use completed trials. 95% Wilson intervals cover sampling uncertainty, not errors in assumed frequencies.')}</p><div className="probability-table">{sim.finite.seats.map((_,i)=><div className="probability-row" key={i}><b>{seatName(i,sim.input.players)}</b>{(['finite','infinite'] as const).map(mode=>{const seat=sim[mode].seats[i],rate=sim[mode].completed?seat.unmarked/sim[mode].completed:0;return <div key={mode} className={mode}><span className="bar-caption">{tr(lang,mode==='finite'?'有限':'无限',mode==='finite'?'Finite':'Infinite')} <b>{number(rate*100)}%</b></span><div className="probability-track"><i style={{width:`${rate*100}%`}}/></div><small>{number(seat.interval[0]*100)}–{number(seat.interval[1]*100)}%</small></div>;})}</div>)}</div>
- <details className="distribution"><summary>{tr(lang,'查看一个座位的完整结算分布','Inspect a seat’s full settlement distribution')}</summary><label>{tr(lang,'座位','Seat')}<select value={selected} onChange={e=>setFocusSeat(Number(e.target.value))}>{Array.from({length:sim.input.players},(_,i)=><option key={i} value={i}>{seatName(i,sim.input.players)}</option>)}</select></label><div className="distribution-grid">{(['finite','infinite'] as const).map(mode=><div key={mode}><h3>{tr(lang,mode==='finite'?'有限':'无限',mode==='finite'?'Finite':'Infinite')} · {tr(lang,'平均','Mean')} {signed(sim[mode].seats[selected].mean)} BB</h3><table className="data-table"><thead><tr><th>BB</th><th>{tr(lang,'轮数','Rounds')}</th><th>%</th></tr></thead><tbody>{sim[mode].seats[selected].distribution.map(([value,count])=><tr key={value}><td>{signed(value)}</td><td>{count}</td><td>{number(count/sim[mode].completed*100)}</td></tr>)}</tbody></table></div>)}</div></details><button disabled={!fresh||running} onClick={()=>downloadJSON('squid-lab-simulation-v1.json',{rulesVersion:state.rulesVersion,...sim})}>{tr(lang,'导出这组模拟','Export this simulation')}</button></div>:<p className="empty simulation-empty">{tr(lang,'先用默认频率跑一次，再只改变一个座位，比较规则与假设各自带来的变化。','Run equal frequencies first. Then change one seat to separate rule effects from assumption effects.')}</p>}
- </section></div>;
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { PREFIX, replay, rules, seatName, type HandEvent, type Mode } from '@/lib/rules';
+import { isFreshResult, simulationInput, downloadJSON } from '@/lib/session';
+import type { SimulationResult } from '@/lib/simulation';
+import { Ledger, Marks, tr, number, signed, type PanelProps } from './Common';
+export default function SandboxPanel({ lang, state, update }: PanelProps) {
+  const b = state.sandbox,
+    [players, setPlayers] = useState(String(b.players)),
+    [unit, setUnit] = useState(String(b.unit)),
+    [shown, setShown] = useState(true),
+    [message, setMessage] = useState(''),
+    [running, setRunning] = useState(false),
+    [progress, setProgress] = useState(0),
+    [focusSeat, setFocusSeat] = useState(b.players - 1);
+  const worker = useRef<Worker | null>(null);
+  useEffect(() => () => worker.current?.terminate(), []);
+  useEffect(() => {
+    setPlayers(String(b.players));
+    setUnit(String(b.unit));
+    setFocusSeat((v) => Math.min(v, b.players - 1));
+  }, [b.players, b.unit]);
+  const timelines = useMemo(
+    () => ({
+      finite: replay(rules('finite', b.players, b.unit), b.events),
+      infinite: replay(rules('infinite', b.players, b.unit), b.events),
+    }),
+    [b.players, b.unit, b.events],
+  );
+  const round = timelines[b.mode][b.cursor],
+    bothEnded = timelines.finite[b.cursor].ended && timelines.infinite[b.cursor].ended;
+  const patch = (value: Partial<typeof b>) =>
+    update((s) => ({ ...s, sandbox: { ...s.sandbox, ...value } }));
+  const append = (event: HandEvent) => {
+    if (b.cursor >= 1000 || bothEnded) return;
+    patch({ events: [...b.events.slice(0, b.cursor), event], cursor: b.cursor + 1 });
+  };
+  const setup = () => {
+    try {
+      const n = Number(players),
+        u = Number(unit);
+      rules(b.mode, n, u);
+      if (n !== b.players) {
+        patch({ players: n, unit: u, events: [], cursor: 0, weights: Array(n).fill(1) });
+        setFocusSeat(n - 1);
+        setMessage(
+          tr(
+            lang,
+            '已新开一轮，座位改变后重新发标。',
+            'New round: the changed lineup starts without markers.',
+          ),
+        );
+      } else {
+        patch({ unit: u });
+        setMessage(
+          tr(
+            lang,
+            '基础奖励已更新，赢家历史按新规则重放。',
+            'Reward updated. The same history has been replayed.',
+          ),
+        );
+      }
+    } catch {
+      setMessage(
+        tr(
+          lang,
+          '请选择 3–9 人，基础奖励为 0–100BB，最多两位小数。',
+          'Choose 3–9 players and a 0–100BB reward with at most two decimals.',
+        ),
+      );
+    }
+  };
+  const demo = () => {
+    patch({ players: 6, weights: [1, 1, 1, 1, 1, 1], events: PREFIX, cursor: PREFIX.length });
+    setPlayers('6');
+    setFocusSeat(5);
+    setMessage(
+      tr(
+        lang,
+        '已载入首屏的六手历史，可继续点选赢家。',
+        'Loaded the six-hand opening history. Choose the next winner.',
+      ),
+    );
+  };
+  const cancel = () => {
+    worker.current?.terminate();
+    worker.current = null;
+    setRunning(false);
+    setMessage(
+      tr(
+        lang,
+        '已停止模拟，上一组完整结果仍保留。',
+        'Simulation stopped. The previous complete result remains.',
+      ),
+    );
+  };
+  const run = () => {
+    worker.current?.terminate();
+    setRunning(true);
+    setProgress(0);
+    setMessage('');
+    try {
+      const w = new Worker(new URL('../workers/simulation.worker.ts', import.meta.url));
+      worker.current = w;
+      w.onmessage = (e: MessageEvent<{ type: string; done: number; result: SimulationResult }>) => {
+        if (e.data.type === 'progress') setProgress(e.data.done);
+        if (e.data.type === 'result') {
+          update((s) => ({ ...s, simulation: e.data.result }));
+          setRunning(false);
+          w.terminate();
+          worker.current = null;
+        }
+        if (e.data.type === 'error') {
+          setMessage(
+            tr(
+              lang,
+              '这组参数无法模拟，请检查频率和种子。',
+              'Unable to simulate. Check frequencies and seed.',
+            ),
+          );
+          setRunning(false);
+          w.terminate();
+          worker.current = null;
+        }
+      };
+      w.onerror = () => {
+        setMessage(
+          tr(
+            lang,
+            '计算线程没有完成；设置已保留，可以重试。',
+            'The worker did not finish. Settings remain; try again.',
+          ),
+        );
+        setRunning(false);
+        w.terminate();
+        worker.current = null;
+      };
+      w.postMessage(simulationInput(b));
+    } catch {
+      setRunning(false);
+      setMessage(
+        tr(
+          lang,
+          '浏览器无法启动计算线程；沙盘仍可使用。',
+          'The worker could not start. Manual replay remains available.',
+        ),
+      );
+    }
+  };
+  const sim = state.simulation,
+    fresh = isFreshResult(state),
+    selected = Math.min(focusSeat, (sim?.input.players ?? b.players) - 1);
+  return (
+    <div className="workspace">
+      <div className="intro-row">
+        <div>
+          <h2 className="workspace-title">
+            {tr(lang, '同一段历史，换一种规则', 'Replay the same history under different rules')}
+          </h2>
+          <p>
+            {tr(
+              lang,
+              '点一个座位，让它赢下这手主池。结算由规则发生，不靠手填。',
+              'Choose a main-pot winner. The rules produce the ledger.',
+            )}
+          </p>
+        </div>
+        <button onClick={demo} disabled={running}>
+          {tr(lang, '载入首屏六手历史', 'Load the opening six hands')}
+        </button>
+      </div>
+      <div className="sandbox-grid">
+        <section className="panel table-panel" aria-labelledby="table-title">
+          <div className="section-heading">
+            <h2 id="table-title">{tr(lang, '让标记走一轮', 'Follow the markers')}</h2>
+            <div className="segmented">
+              {(['finite', 'infinite'] as Mode[]).map((mode) => (
+                <button key={mode} aria-pressed={mode === b.mode} onClick={() => patch({ mode })}>
+                  {tr(
+                    lang,
+                    mode === 'finite' ? '有限' : '无限',
+                    mode === 'finite' ? 'Finite' : 'Infinite',
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="round-counts">
+            <span>
+              {tr(lang, '已发标记', 'Issued')}
+              <b>{round.marks.reduce((a, c) => a + c, 0)}</b>
+            </span>
+            <span>
+              {tr(lang, '剩余标记', 'Remaining')}
+              <b>{round.remaining}</b>
+            </span>
+            <span>
+              {tr(lang, '下次待发', 'Next award')}
+              <b>{round.ended ? '—' : Math.min(round.nextAward, round.remaining)}</b>
+            </span>
+          </div>
+          <Marks
+            round={round}
+            lang={lang}
+            disabled={bothEnded || b.cursor >= 1000}
+            onWin={(seat) => append({ kind: 'win', seat, shown })}
+          />
+          <div className="table-actions">
+            <button
+              onClick={() => append({ kind: 'chop' })}
+              disabled={bothEnded || b.cursor >= 1000}
+            >
+              {tr(lang, '这手切池', 'Chopped main pot')}
+            </button>
+            <button
+              onClick={() => append({ kind: 'side-only' })}
+              disabled={bothEnded || b.cursor >= 1000}
+            >
+              {tr(lang, '仅记录边池结果', 'Side-pot-only result')}
+            </button>
+          </div>
+          <label className="checkbox">
+            <input type="checkbox" checked={shown} onChange={(e) => setShown(e.target.checked)} />
+            {tr(lang, '这手主池赢家亮牌', 'The main-pot winner reveals their cards')}
+          </label>
+          <p className="caption">
+            {tr(
+              lang,
+              '沙盘只记录取标资格，不模拟整手下注。首次获标要亮牌；仅有边池结果不会替任何人发主池标记。',
+              'This sandbox records qualification, not a full betting hand. First awards require a reveal; side-pot-only events award no markers.',
+            )}
+          </p>
+          <div className="mode-status">
+            {(['finite', 'infinite'] as const).map((mode) => (
+              <span key={mode}>
+                {tr(
+                  lang,
+                  mode === 'finite' ? '有限' : '无限',
+                  mode === 'finite' ? 'Finite' : 'Infinite',
+                )}{' '}
+                ·{' '}
+                {tr(
+                  lang,
+                  timelines[mode][b.cursor].ended ? '已结束' : '进行中',
+                  timelines[mode][b.cursor].ended ? 'Complete' : 'In progress',
+                )}
+              </span>
+            ))}
+          </div>
+          {round.ended && !bothEnded ? (
+            <p className="notice">
+              {tr(
+                lang,
+                '当前模式已结束。继续追加事件只会推进另一种模式。',
+                'This mode has ended. Additional events advance only the other mode.',
+              )}
+            </p>
+          ) : null}
+          <details className="advanced">
+            <summary>{tr(lang, '人数与基础奖励', 'Lineup and base reward')}</summary>
+            <div className="form-grid">
+              <label>
+                {tr(lang, '人数', 'Players')}
+                <select
+                  value={players}
+                  onChange={(e) => setPlayers(e.target.value)}
+                  disabled={running}
+                >
+                  {[3, 4, 5, 6, 7, 8, 9].map((n) => (
+                    <option key={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {tr(lang, '每份奖励 BB', 'Reward per unit BB')}
+                <input
+                  type="number"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  min="0"
+                  max="100"
+                  step=".01"
+                  disabled={running}
+                />
+              </label>
+            </div>
+            <p className="caption">
+              {tr(
+                lang,
+                '改变人数会新开一轮；只改基础奖励则保留并重放赢家历史。',
+                'Changing the lineup starts a new round. A reward change preserves and replays the history.',
+              )}
+            </p>
+            <button onClick={setup} disabled={running}>
+              {Number(players) !== b.players
+                ? tr(lang, '应用并新开一轮', 'Apply and start new round')
+                : tr(lang, '应用并重放历史', 'Apply and replay')}
+            </button>
+          </details>
+          <div className="timeline-heading">
+            <h3>{tr(lang, '逐手回放', 'Event replay')}</h3>
+            <span>
+              {b.cursor} / {b.events.length}
+            </span>
+          </div>
+          <div className="replay-controls">
+            <button
+              onClick={() => patch({ cursor: Math.max(0, b.cursor - 1) })}
+              disabled={!b.cursor}
+            >
+              {tr(lang, '← 上一步 / 撤销', '← Back / undo')}
+            </button>
+            <button
+              onClick={() => patch({ cursor: Math.min(b.events.length, b.cursor + 1) })}
+              disabled={b.cursor === b.events.length}
+            >
+              {tr(lang, '下一步 →', 'Next →')}
+            </button>
+          </div>
+          {!b.events.length ? (
+            <p className="empty">
+              {tr(
+                lang,
+                '尚无事件，点选上方任一座位开始。',
+                'No events yet. Choose a seat above to begin.',
+              )}
+            </p>
+          ) : (
+            <ol className="event-list">
+              {b.events.map((e, i) => (
+                <li key={i}>
+                  <button
+                    aria-current={b.cursor === i + 1 ? 'step' : undefined}
+                    onClick={() => patch({ cursor: i + 1 })}
+                  >
+                    <span>{i + 1}</span>
+                    {e.kind === 'win'
+                      ? `${seatName(e.seat, b.players)} · ${tr(lang, e.shown ? '主池独赢并亮牌' : '主池独赢未亮牌', e.shown ? 'main pot, shown' : 'main pot, not shown')}`
+                      : tr(
+                          lang,
+                          e.kind === 'chop' ? '切池' : '仅边池结果',
+                          e.kind === 'chop' ? 'Chop' : 'Side-pot only',
+                        )}
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+          <p className="caption">
+            {tr(
+              lang,
+              '回到较早事件后新增赢家，会从该处创建新的后续历史。最多保留 1,000 个事件。',
+              'Adding from an earlier point replaces the later branch. Up to 1,000 events are retained.',
+            )}
+          </p>
+        </section>
+        <Ledger round={round} lang={lang} />
+      </div>
+      <section className="simulation-section" aria-labelledby="simulation-title">
+        <div className="section-heading">
+          <div>
+            <h2 id="simulation-title">
+              {tr(lang, '让两种规则，遇见同一段未来', 'Let both rules encounter the same future')}
+            </h2>
+            <p className="muted">
+              {tr(
+                lang,
+                '主池赢家频率由你假设；每轮两种模式使用相同的赢家与切池事件。',
+                'You set winner frequencies. Both modes receive the same winner and chop events in each trial.',
+              )}
+            </p>
+          </div>
+          <div className="simulation-actions">
+            <button className="primary" onClick={run} disabled={running}>
+              {running
+                ? tr(lang, '模拟进行中…', 'Simulating…')
+                : tr(lang, '模拟 5,000 轮', 'Simulate 5,000 rounds')}
+            </button>
+            {running ? <button onClick={cancel}>{tr(lang, '停止', 'Stop')}</button> : null}
+          </div>
+        </div>
+        <details className="simulation-settings">
+          <summary>
+            {tr(lang, '调整赢家频率、切池与种子', 'Edit winner frequencies, chops and seed')}
+          </summary>
+          <div className="weight-grid">
+            {b.weights.map((weight, i) => (
+              <label key={`${b.players}-${i}`}>
+                {seatName(i, b.players)}{' '}
+                <small>{number((weight / b.weights.reduce((a, c) => a + c, 0)) * 100, 1)}%</small>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={weight}
+                  disabled={running}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (value >= 1 && value <= 100) {
+                      const weights = [...b.weights];
+                      weights[i] = value;
+                      patch({ weights });
+                    }
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="form-grid">
+            <label>
+              {tr(lang, '切池概率 %', 'Chop probability %')}
+              <input
+                type="number"
+                min="0"
+                max="50"
+                value={b.chopRate * 100}
+                disabled={running}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (value >= 0 && value <= 50) patch({ chopRate: value / 100 });
+                }}
+              />
+            </label>
+            <label>
+              {tr(lang, '随机种子', 'Random seed')}
+              <input
+                type="number"
+                min="0"
+                max="4294967295"
+                value={b.seed}
+                disabled={running}
+                onChange={(e) => {
+                  const seed = Number(e.target.value);
+                  if (Number.isInteger(seed) && seed >= 0 && seed <= 0xffffffff) patch({ seed });
+                }}
+              />
+            </label>
+          </div>
+          <p className="caption">
+            {tr(
+              lang,
+              '相对频率填 1–100，自动归一化；每手独立，玩家不会因有无标记而改变打法。',
+              'Relative weights 1–100 are normalized. Hands are independent; players do not adapt to marker holdings.',
+            )}
+          </p>
+        </details>
+        {running ? (
+          <div className="progress" role="status">
+            <progress
+              value={progress}
+              max="5000"
+              aria-label={tr(lang, '模拟进度', 'Simulation progress')}
+            />
+            <span>{number(progress)} / 5,000</span>
+          </div>
+        ) : null}
+        {message ? (
+          <p className="notice" role="status">
+            {message}
+          </p>
+        ) : null}
+        {sim ? (
+          <div className={`simulation-results ${fresh ? '' : 'stale'}`}>
+            <div className="result-stamp">
+              <span>
+                {tr(
+                  lang,
+                  `结果属于：${sim.input.players} 人 · ${sim.input.unit}BB · 种子 ${sim.input.seed}`,
+                  `Result: ${sim.input.players} players · ${sim.input.unit}BB · seed ${sim.input.seed}`,
+                )}
+              </span>
+              {!fresh ? (
+                <b>{tr(lang, '参数已改，请重新模拟', 'Settings changed · rerun required')}</b>
+              ) : null}
+            </div>
+            <div className="sim-metrics">
+              {(['finite', 'infinite'] as const).map((mode) => (
+                <div key={mode}>
+                  <h3>
+                    {tr(
+                      lang,
+                      mode === 'finite' ? '有限鱿鱼' : '无限鱿鱼',
+                      mode === 'finite' ? 'Finite squid' : 'Infinite squid',
+                    )}
+                  </h3>
+                  <strong>
+                    {number(sim[mode].meanHands)}{' '}
+                    <small>{tr(lang, '手 / 轮', 'hands / round')}</small>
+                  </strong>
+                  <p>
+                    {tr(
+                      lang,
+                      `完成 ${sim[mode].completed} · 未完成 ${sim[mode].unfinished}`,
+                      `${sim[mode].completed} complete · ${sim[mode].unfinished} unfinished`,
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <h3>
+              {tr(lang, '谁更容易在结束时没有标记？', 'Who is more likely to finish unmarked?')}
+            </h3>
+            <p className="caption">
+              {tr(
+                lang,
+                '无标比例按已完成样本计算；95% Wilson 区间只表示抽样误差，不包含频率假设的误差。',
+                'Rates use completed trials. 95% Wilson intervals cover sampling uncertainty, not errors in assumed frequencies.',
+              )}
+            </p>
+            <div className="probability-table">
+              {sim.finite.seats.map((_, i) => (
+                <div className="probability-row" key={i}>
+                  <b>{seatName(i, sim.input.players)}</b>
+                  {(['finite', 'infinite'] as const).map((mode) => {
+                    const seat = sim[mode].seats[i],
+                      rate = sim[mode].completed ? seat.unmarked / sim[mode].completed : 0;
+                    return (
+                      <div key={mode} className={mode}>
+                        <span className="bar-caption">
+                          {tr(
+                            lang,
+                            mode === 'finite' ? '有限' : '无限',
+                            mode === 'finite' ? 'Finite' : 'Infinite',
+                          )}{' '}
+                          <b>{number(rate * 100)}%</b>
+                        </span>
+                        <div className="probability-track">
+                          <i style={{ width: `${rate * 100}%` }} />
+                        </div>
+                        <small>
+                          {number(seat.interval[0] * 100)}–{number(seat.interval[1] * 100)}%
+                        </small>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <details className="distribution">
+              <summary>
+                {tr(
+                  lang,
+                  '查看一个座位的完整结算分布',
+                  'Inspect a seat’s full settlement distribution',
+                )}
+              </summary>
+              <label>
+                {tr(lang, '座位', 'Seat')}
+                <select value={selected} onChange={(e) => setFocusSeat(Number(e.target.value))}>
+                  {Array.from({ length: sim.input.players }, (_, i) => (
+                    <option key={i} value={i}>
+                      {seatName(i, sim.input.players)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="distribution-grid">
+                {(['finite', 'infinite'] as const).map((mode) => (
+                  <div key={mode}>
+                    <h3>
+                      {tr(
+                        lang,
+                        mode === 'finite' ? '有限' : '无限',
+                        mode === 'finite' ? 'Finite' : 'Infinite',
+                      )}{' '}
+                      · {tr(lang, '平均', 'Mean')} {signed(sim[mode].seats[selected].mean)} BB
+                    </h3>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>BB</th>
+                          <th>{tr(lang, '轮数', 'Rounds')}</th>
+                          <th>%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sim[mode].seats[selected].distribution.map(([value, count]) => (
+                          <tr key={value}>
+                            <td>{signed(value)}</td>
+                            <td>{count}</td>
+                            <td>{number((count / sim[mode].completed) * 100)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </details>
+            <button
+              disabled={!fresh || running}
+              onClick={() =>
+                downloadJSON('squid-lab-simulation-v1.json', {
+                  rulesVersion: state.rulesVersion,
+                  ...sim,
+                })
+              }
+            >
+              {tr(lang, '导出这组模拟', 'Export this simulation')}
+            </button>
+          </div>
+        ) : (
+          <p className="empty simulation-empty">
+            {tr(
+              lang,
+              '先用默认频率跑一次，再只改变一个座位，比较规则与假设各自带来的变化。',
+              'Run equal frequencies first. Then change one seat to separate rule effects from assumption effects.',
+            )}
+          </p>
+        )}
+      </section>
+    </div>
+  );
 }
