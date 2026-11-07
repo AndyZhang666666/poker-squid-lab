@@ -1,10 +1,11 @@
 'use client';
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {compareSpot,SPOT_CARDS} from '@/lib/spot';
 import {replay,rules,PREFIX,type Mode} from '@/lib/rules';
 import {Cards,Marks,tr,number,signed,type PanelProps} from './Common';
 export default function SpotPanel({lang,state,update}:PanelProps){
  const p=state.spot,[mode,setMode]=useState<Mode>('finite'),[draft,setDraft]=useState({pot:String(p.pot),call:String(p.call),unit:String(p.unit)}),[error,setError]=useState('');
+ useEffect(()=>setDraft({pot:String(p.pot),call:String(p.call),unit:String(p.unit)}),[p.pot,p.call,p.unit]);
  const result=useMemo(()=>compareSpot(p.pot,p.call,p.unit),[p.pot,p.call,p.unit]);
  const round=useMemo(()=>replay(rules(mode,6,p.unit),PREFIX).at(-1)!,[mode,p.unit]);
  const selected=result.rows.find(r=>r.mode===mode)!;

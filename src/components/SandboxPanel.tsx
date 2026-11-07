@@ -7,6 +7,7 @@ import {Ledger,Marks,tr,number,signed,type PanelProps} from './Common';
 export default function SandboxPanel({lang,state,update}:PanelProps){
  const b=state.sandbox,[players,setPlayers]=useState(String(b.players)),[unit,setUnit]=useState(String(b.unit)),[shown,setShown]=useState(true),[message,setMessage]=useState(''),[running,setRunning]=useState(false),[progress,setProgress]=useState(0),[focusSeat,setFocusSeat]=useState(b.players-1);
  const worker=useRef<Worker|null>(null);useEffect(()=>()=>worker.current?.terminate(),[]);
+ useEffect(()=>{setPlayers(String(b.players));setUnit(String(b.unit));setFocusSeat(v=>Math.min(v,b.players-1));},[b.players,b.unit]);
  const timelines=useMemo(()=>({finite:replay(rules('finite',b.players,b.unit),b.events),infinite:replay(rules('infinite',b.players,b.unit),b.events)}),[b.players,b.unit,b.events]);
  const round=timelines[b.mode][b.cursor],bothEnded=timelines.finite[b.cursor].ended&&timelines.infinite[b.cursor].ended;
  const patch=(value:Partial<typeof b>)=>update(s=>({...s,sandbox:{...s.sandbox,...value}}));
