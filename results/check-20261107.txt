@@ -1,0 +1,26 @@
+
+> poker-squid-lab@0.1.0 test
+> node --test scripts/test-*.mjs
+
+✔ finite repeat, chops, side pots and unrevealed first wins do not award (0.77175ms)
+✔ finite round settles 25 BB from last unmarked and conserves cents (0.595416ms)
+✔ infinite double, chop carry, first reveal and full holding multiplier (0.094333ms)
+✔ award is capped by supply and every unmarked player pays separately (0.101167ms)
+✔ last-unmarked endpoint does not pay unissued markers (0.088708ms)
+✔ authored river uses physical cards and reproduces all three counterfactuals (0.201083ms)
+✔ zero penalty agrees with plain chip EV; pot and ranges are validated (0.22275ms)
+✔ all replay prefixes are immutable and complete ledger stays zero-sum across seeded simulations (8.199291ms)
+✔ paired simulation is reproducible and finite equal-weight averages agree with analytical checks (75.16625ms)
+✔ all twelve challenges have one unique computed answer (1.877791ms)
+✔ session and paired results round-trip; stale result remains tied to original conditions (93.913792ms)
+✔ damaged, unknown-version, invalid events and fabricated results are rejected (34.744375ms)
+✔ attempt merge and repeated click are idempotent; full retained progress imports (1.79875ms)
+✔ an active production simulation can be terminated before a result is committed (150.112ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 291.900042
