@@ -43,6 +43,11 @@ export default function ChallengePanel({ lang, state, update }: PanelProps) {
     select(next && wrong.length ? questions.findIndex((q) => q.id === wrong[0].id) : 0);
   };
   const next = () => {
+    if (reviewOnly && !wrong.length) {
+      setReviewOnly(false);
+      select(0);
+      return;
+    }
     const position = available.findIndex((item) => item.id === q.id),
       item = available[(position + 1) % available.length];
     if (item) select(questions.findIndex((q) => q.id === item.id));
@@ -106,7 +111,9 @@ export default function ChallengePanel({ lang, state, update }: PanelProps) {
               <p>{q.explanation[lang]}</p>
               <div className="choice-actions">
                 <button className="primary" onClick={next}>
-                  {tr(lang, '下一题 →', 'Next spot →')}
+                  {reviewOnly && !wrong.length
+                    ? tr(lang, '回到完整题组', 'Return to all spots')
+                    : tr(lang, '下一题 →', 'Next spot →')}
                 </button>
                 <button onClick={() => select(index)}>
                   {tr(lang, '再想一次', 'Try this spot again')}

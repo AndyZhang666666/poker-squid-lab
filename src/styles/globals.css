@@ -1556,3 +1556,55 @@ details[open] > summary {
     margin-bottom: 16px;
   }
 }
+@media (max-width: 760px) {
+  .scene {
+    display: flex;
+    flex-direction: column;
+  }
+  .scene-top {
+    order: 0;
+  }
+  .scene h3 {
+    order: 1;
+    margin-top: 8px;
+  }
+  .scene .pot-strip {
+    order: 2;
+    margin-top: 10px;
+    gap: 24px;
+  }
+  .scene .scene-question-note {
+    order: 3;
+  }
+  .scene .choice-actions {
+    order: 4;
+    margin-bottom: 20px;
+  }
+  .scene .seat-grid {
+    order: 5;
+  }
+  .scene .board-area {
+    order: 6;
+  }
+  .scene .advanced {
+    order: 7;
+  }
+  .scene .pot-strip strong {
+    font-size: 20px;
+  }
+}
+@media (max-width: 420px) {
+  .scene .pot-strip {
+    gap: 20px;
+  }
+  .scene .pot-strip span {
+    font-size: 11px;
+  }
+}
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

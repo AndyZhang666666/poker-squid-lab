@@ -1,4 +1,4 @@
-import { simulate, type SimulationInput } from '../lib/simulation';
+import { simulate, type SimulationInput } from '../lib/simulation.ts';
 self.onmessage = (event: MessageEvent<SimulationInput>) => {
   try {
     const result = simulate(event.data, (done) => self.postMessage({ type: 'progress', done }));

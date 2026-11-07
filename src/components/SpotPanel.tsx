@@ -102,6 +102,10 @@ export default function SpotPanel({ lang, state, update }: PanelProps) {
             <span>
               {tr(lang, '跟注需要', 'Call costs')} <strong>{number(p.call)} BB</strong>
             </span>
+            <span>
+              {tr(lang, '获胜概率', 'Win probability')}
+              <strong>{number(result.equity.win * 100)}%</strong>
+            </span>
           </div>
           <h3 id="spot-question">
             {tr(lang, '轮到你，这手值得跟吗？', 'Your turn. Is this call worth it?')}

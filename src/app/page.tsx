@@ -17,6 +17,7 @@ export default function Page() {
   const session = useSession(),
     [lang, setLang] = useState<Lang>('zh'),
     [palette, setPalette] = useState('frost'),
+    [reduced, setReduced] = useState(false),
     [tab, setTab] = useState<Tab>('spot'),
     [notice, setNotice] = useState('');
   const file = useRef<HTMLInputElement>(null);
@@ -24,6 +25,11 @@ export default function Page() {
     const url = new URL(location.href);
     if (url.searchParams.get('lang') === 'en') setLang('en');
     setPalette(document.documentElement.dataset.palette || 'frost');
+    try {
+      const motion = localStorage.getItem('squid-lab-reduced-motion') === 'true';
+      setReduced(motion);
+      document.documentElement.dataset.motion = motion ? 'reduced' : 'system';
+    } catch {}
     const read = () => {
       const h = location.hash.slice(1) as Tab;
       if (tabs.includes(h)) setTab(h);
@@ -63,6 +69,14 @@ export default function Page() {
     setTab(value);
     history.replaceState(null, '', `#${value}`);
     window.scrollTo({ top: 0 });
+  };
+  const toggleMotion = () => {
+    const next = !reduced;
+    setReduced(next);
+    document.documentElement.dataset.motion = next ? 'reduced' : 'system';
+    try {
+      localStorage.setItem('squid-lab-reduced-motion', String(next));
+    } catch {}
   };
   const importFile = async (selected: File | undefined) => {
     if (!selected) return;
@@ -273,6 +287,9 @@ export default function Page() {
             </small>
           </div>
           <div className="backup-actions">
+            <button aria-pressed={reduced} onClick={toggleMotion}>
+              {tr(lang, '减少动态效果', 'Reduce motion')}
+            </button>
             <button
               disabled={!session.ready}
               onClick={() => downloadJSON('squid-lab-backup-v1.json', session.state)}

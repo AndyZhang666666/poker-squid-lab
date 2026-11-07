@@ -473,6 +473,19 @@ export default function SandboxPanel({ lang, state, update }: PanelProps) {
                 <b>{tr(lang, '参数已改，请重新模拟', 'Settings changed · rerun required')}</b>
               ) : null}
             </div>
+            <details className="result-inputs">
+              <summary>
+                {tr(lang, '查看这组结果的原始条件', 'Inspect this result’s original inputs')}
+              </summary>
+              <p className="caption">
+                {tr(lang, '各座位相对频率', 'Relative seat frequencies')}:{' '}
+                {sim.input.weights.join(' / ')}
+                {' · '}
+                {tr(lang, '切池概率', 'Chop probability')}: {number(sim.input.chopRate * 100)}%
+                {' · '}
+                {tr(lang, '模拟轮数', 'Trials')}: {sim.input.trials}
+              </p>
+            </details>
             <div className="sim-metrics">
               {(['finite', 'infinite'] as const).map((mode) => (
                 <div key={mode}>
